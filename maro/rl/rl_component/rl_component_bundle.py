@@ -26,6 +26,7 @@ class RLComponentBundle:
         policy-trainer mapping are considered as trainable polices. Policies that not provided in policy-trainer
         mapping will not be trained.
     """
+
     env_sampler: AbsEnvSampler
     agent2policy: Dict[Any, str]
     policies: List[AbsPolicy]

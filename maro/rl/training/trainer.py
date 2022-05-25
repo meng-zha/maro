@@ -38,6 +38,7 @@ class TrainerParams:
     reward_discount (float, default=0.9): Reward decay as defined in standard RL terminology.
 
     """
+
     replay_memory_capacity: int = 10000
     batch_size: int = 128
     data_parallelism: int = 1
@@ -93,7 +94,8 @@ class AbsTrainer(object, metaclass=ABCMeta):
             policy_trainer_mapping (Dict[str, str]): Policy name to trainer name mapping.
         """
         self._agent2policy = {
-            agent_name: policy_name for agent_name, policy_name in agent2policy.items()
+            agent_name: policy_name
+            for agent_name, policy_name in agent2policy.items()
             if policy_trainer_mapping[policy_name] == self.name
         }
 
@@ -116,13 +118,11 @@ class AbsTrainer(object, metaclass=ABCMeta):
 
     @abstractmethod
     def train_step(self) -> None:
-        """Run a training step to update all the policies that this trainer is responsible for.
-        """
+        """Run a training step to update all the policies that this trainer is responsible for."""
         raise NotImplementedError
 
     async def train_step_as_task(self) -> None:
-        """Update all policies managed by the trainer as an asynchronous task.
-        """
+        """Update all policies managed by the trainer as an asynchronous task."""
         raise NotImplementedError
 
     @abstractmethod
@@ -162,8 +162,7 @@ class AbsTrainer(object, metaclass=ABCMeta):
 
 
 class SingleAgentTrainer(AbsTrainer, metaclass=ABCMeta):
-    """Policy trainer that trains only one policy.
-    """
+    """Policy trainer that trains only one policy."""
 
     def __init__(self, name: str, params: TrainerParams) -> None:
         super(SingleAgentTrainer, self).__init__(name, params)
@@ -176,11 +175,7 @@ class SingleAgentTrainer(AbsTrainer, metaclass=ABCMeta):
         return self._ops
 
     def register_policies(self, policies: List[AbsPolicy], policy_trainer_mapping: Dict[str, str]) -> None:
-        policies = [
-            policy
-            for policy in policies
-            if policy_trainer_mapping[policy.name] == self.name
-        ]
+        policies = [policy for policy in policies if policy_trainer_mapping[policy.name] == self.name]
         if len(policies) != 1:
             raise ValueError(f"Trainer {self._name} should have exactly one policy assigned to it")
 
@@ -217,10 +212,12 @@ class SingleAgentTrainer(AbsTrainer, metaclass=ABCMeta):
         policy_state = torch.load(os.path.join(path, f"{self.name}_policy.{FILE_SUFFIX}"))
         non_policy_state = torch.load(os.path.join(path, f"{self.name}_non_policy.{FILE_SUFFIX}"))
 
-        self._ops.set_state({
-            "policy": policy_state,
-            "non_policy": non_policy_state,
-        })
+        self._ops.set_state(
+            {
+                "policy": policy_state,
+                "non_policy": non_policy_state,
+            },
+        )
 
     def save(self, path: str) -> None:
         self._assert_ops_exists()
@@ -236,13 +233,15 @@ class SingleAgentTrainer(AbsTrainer, metaclass=ABCMeta):
         agent_exp_pool = collections.defaultdict(list)
         for exp_element in exp_elements:
             for agent_name in exp_element.agent_names:
-                agent_exp_pool[agent_name].append((
-                    exp_element.agent_state_dict[agent_name],
-                    exp_element.action_dict[agent_name],
-                    exp_element.reward_dict[agent_name],
-                    exp_element.terminal_dict[agent_name],
-                    exp_element.next_agent_state_dict.get(agent_name, exp_element.agent_state_dict[agent_name]),
-                ))
+                agent_exp_pool[agent_name].append(
+                    (
+                        exp_element.agent_state_dict[agent_name],
+                        exp_element.action_dict[agent_name],
+                        exp_element.reward_dict[agent_name],
+                        exp_element.terminal_dict[agent_name],
+                        exp_element.next_agent_state_dict.get(agent_name, exp_element.agent_state_dict[agent_name]),
+                    ),
+                )
 
         for agent_name, exps in agent_exp_pool.items():
             transition_batch = TransitionBatch(
@@ -270,8 +269,7 @@ class SingleAgentTrainer(AbsTrainer, metaclass=ABCMeta):
 
 
 class MultiAgentTrainer(AbsTrainer, metaclass=ABCMeta):
-    """Policy trainer that trains multiple policies.
-    """
+    """Policy trainer that trains multiple policies."""
 
     def __init__(self, name: str, params: TrainerParams) -> None:
         super(MultiAgentTrainer, self).__init__(name, params)
@@ -286,9 +284,7 @@ class MultiAgentTrainer(AbsTrainer, metaclass=ABCMeta):
     def register_policies(self, policies: List[AbsPolicy], policy_trainer_mapping: Dict[str, str]) -> None:
         self._policy_names = [policy.name for policy in policies if policy_trainer_mapping[policy.name] == self.name]
         self._policy_dict = {
-            policy.name: policy
-            for policy in policies
-            if policy_trainer_mapping[policy.name] == self.name
+            policy.name: policy for policy in policies if policy_trainer_mapping[policy.name] == self.name
         }
 
     @abstractmethod

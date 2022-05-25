@@ -178,12 +178,12 @@ def training_workflow(rl_component_bundle: RLComponentBundle, env_attr: Workflow
 
         # performance details
         env_attr.logger.info(
-            f"ep {ep} - roll-out time: {collect_time:.2f} seconds, training time: {training_time:.2f} seconds"
+            f"ep {ep} - roll-out time: {collect_time:.2f} seconds, training time: {training_time:.2f} seconds",
         )
         if env_attr.eval_schedule and ep == env_attr.eval_schedule[eval_point_index]:
             eval_point_index += 1
             result = env_sampler.eval(
-                policy_state=training_manager.get_policy_state() if not env_attr.is_single_thread else None
+                policy_state=training_manager.get_policy_state() if not env_attr.is_single_thread else None,
             )
             env_sampler.post_evaluate(result["info"], ep)
 

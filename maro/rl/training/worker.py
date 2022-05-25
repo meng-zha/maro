@@ -38,7 +38,10 @@ class TrainOpsWorker(AbsWorker):
         logger: LoggerV2 = None,
     ) -> None:
         super(TrainOpsWorker, self).__init__(
-            idx=idx, producer_host=producer_host, producer_port=producer_port, logger=logger,
+            idx=idx,
+            producer_host=producer_host,
+            producer_port=producer_port,
+            logger=logger,
         )
 
         self._rl_component_bundle = rl_component_bundle
@@ -59,7 +62,9 @@ class TrainOpsWorker(AbsWorker):
             ops_name, req = bytes_to_string(msg[0]), bytes_to_pyobj(msg[-1])
             assert isinstance(req, dict)
 
-            trainer_dict: Dict[str, AbsTrainer] = {trainer.name: trainer for trainer in self._rl_component_bundle.trainers}
+            trainer_dict: Dict[str, AbsTrainer] = {
+                trainer.name: trainer for trainer in self._rl_component_bundle.trainers
+            }
 
             if ops_name not in self._ops_dict:
                 trainer_name = self._rl_component_bundle.policy_trainer_mapping[ops_name]
