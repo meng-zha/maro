@@ -1,11 +1,12 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
+
 import argparse
 import importlib
 import os
 import sys
 import time
-from typing import List, Type, Union
+from typing import List, Union
 
 from maro.rl.rl_component.rl_component_bundle import RLComponentBundle
 from maro.rl.rollout import AbsEnvSampler, BatchEnvSampler, ExpElement
@@ -18,21 +19,42 @@ from maro.utils import LoggerV2
 
 class WorkflowEnvAttributes:
     def __init__(self) -> None:
+        # Number of training episodes
         self.num_episodes = int(get_env("NUM_EPISODES"))
+
+        # Maximum number of steps in on round of sampling.
         self.num_steps = int_or_none(get_env("NUM_STEPS", required=False))
+
+        # Minimum number of data samples to start a round of training. If the data samples are insufficient, re-run
+        # data sampling until we have at least `min_n_sample` data entries.
         self.min_n_sample = int_or_none(get_env("MIN_N_SAMPLE"))
+
+        # Path to store logs.
         self.log_path = get_env("LOG_PATH")
+
+        # Log levels
         self.log_level_stdout = get_env("LOG_LEVEL_STDOUT", required=False, default="CRITICAL")
         self.log_level_file = get_env("LOG_LEVEL_FILE", required=False, default="CRITICAL")
+
+        # Parallelism of sampling / evaluation. Used in distributed sampling.
         self.env_sampling_parallelism = int_or_none(get_env("ENV_SAMPLE_PARALLELISM", required=False))
         self.env_eval_parallelism = int_or_none(get_env("ENV_EVAL_PARALLELISM", required=False))
+
+        # Training mode, simple or distributed
         self.train_mode = get_env("TRAIN_MODE")
+
+        # Evaluating schedule.
         self.eval_schedule = list_or_none(get_env("EVAL_SCHEDULE", required=False))
+
+        # Restore configurations.
         self.load_path = get_env("LOAD_PATH", required=False)
         self.load_episode = int_or_none(get_env("LOAD_EPISODE", required=False))
+
+        # Checkpointing configurations.
         self.checkpoint_path = get_env("CHECKPOINT_PATH", required=False)
         self.checkpoint_interval = int_or_none(get_env("CHECKPOINT_INTERVAL", required=False))
 
+        # Parallel sampling configurations.
         self.parallel_rollout = self.env_sampling_parallelism is not None or self.env_eval_parallelism is not None
         if self.parallel_rollout:
             self.port = int(get_env("ROLLOUT_CONTROLLER_PORT"))
@@ -41,6 +63,7 @@ class WorkflowEnvAttributes:
 
         self.is_single_thread = self.train_mode == "simple" and not self.parallel_rollout
 
+        # Distributed training configurations.
         if self.train_mode != "simple":
             self.proxy_address = (get_env("TRAIN_PROXY_HOST"), int(get_env("TRAIN_PROXY_FRONTEND_PORT")))
 
@@ -74,8 +97,9 @@ def _get_env_sampler(
         )
     else:
         env_sampler = rl_component_bundle.env_sampler
-        for policy_name, device_name in rl_component_bundle.device_mapping.items():
-            env_sampler.assign_policy_to_device(policy_name, get_torch_device(device_name))
+        if rl_component_bundle.device_mapping is not None:
+            for policy_name, device_name in rl_component_bundle.device_mapping.items():
+                env_sampler.assign_policy_to_device(policy_name, get_torch_device(device_name))
 
     return env_sampler
 
@@ -89,9 +113,6 @@ def main(rl_component_bundle: RLComponentBundle, env_attr: WorkflowEnvAttributes
 
 def training_workflow(rl_component_bundle: RLComponentBundle, env_attr: WorkflowEnvAttributes) -> None:
     env_attr.logger.info("Start training workflow.")
-
-    if env_attr.is_single_thread:
-        rl_component_bundle.pre_create_policy_instances()
 
     env_sampler = _get_env_sampler(rl_component_bundle, env_attr)
 
@@ -156,7 +177,9 @@ def training_workflow(rl_component_bundle: RLComponentBundle, env_attr: Workflow
         training_time += time.time() - tu0
 
         # performance details
-        env_attr.logger.info(f"ep {ep} - roll-out time: {collect_time:.2f} seconds, training time: {training_time:.2f} seconds")
+        env_attr.logger.info(
+            f"ep {ep} - roll-out time: {collect_time:.2f} seconds, training time: {training_time:.2f} seconds"
+        )
         if env_attr.eval_schedule and ep == env_attr.eval_schedule[eval_point_index]:
             eval_point_index += 1
             result = env_sampler.eval(
@@ -196,6 +219,4 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(scenario_path))
     module = importlib.import_module(os.path.basename(scenario_path))
 
-    rl_component_bundle_cls: Type[RLComponentBundle] = getattr(module, "rl_component_bundle_cls")
-
-    main(rl_component_bundle_cls(), WorkflowEnvAttributes(), args=_get_args())
+    main(getattr(module, "rl_component_bundle"), WorkflowEnvAttributes(), args=_get_args())
