@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Any, Callable, Dict, Optional
 
-from examples.cim.rl.config import action_num, algorithm, env_conf, num_agents, reward_shaping_conf, state_dim
+from examples.cim.rl.config import action_num, algorithm, env_conf, reward_shaping_conf, state_dim
 from examples.cim.rl.env_sampler import CIMEnvSampler
 from maro.rl.policy import AbsPolicy
 from maro.rl.rl_component.rl_component_bundle import RLComponentBundle
@@ -32,6 +32,8 @@ class CIMBundle(RLComponentBundle):
         return {agent: f"{algorithm}_{agent}.policy"for agent in self.env.agent_idx_list}
 
     def get_policy_creator(self) -> Dict[str, Callable[[], AbsPolicy]]:
+        num_agents = len(self.env.agent_idx_list)
+
         if algorithm == "ac":
             policy_creator = {
                 f"{algorithm}_{i}.policy": partial(get_ac_policy, state_dim, action_num, f"{algorithm}_{i}.policy")
@@ -58,6 +60,8 @@ class CIMBundle(RLComponentBundle):
         return policy_creator
 
     def get_trainer_creator(self) -> Dict[str, Callable[[], AbsTrainer]]:
+        num_agents = len(self.env.agent_idx_list)
+
         if algorithm == "ac":
             trainer_creator = {
                 f"{algorithm}_{i}": partial(get_ac, state_dim, f"{algorithm}_{i}")
