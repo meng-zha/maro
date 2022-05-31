@@ -26,10 +26,10 @@ class BaseStockPolicy(RuleBasedPolicy):
         self.history_len = policy_parameters["history_len"]
         self.future_len = policy_parameters["future_len"]
 
-        self.product_level_snapshot: Dict[int, Dict[int, int]] = defaultdict(dict)
-        self.in_transit_snapshot: Dict[int, Dict[int, int]] = defaultdict(dict)
-
-        self.stock_quantity: Dict[int, Dict[int, int]] = defaultdict(dict)
+        # Use tuple(facility_name, sku_name) as index
+        self.product_level_snapshot: Dict[tuple(str, str), Dict[int, int]] = defaultdict(dict)
+        self.in_transit_snapshot: Dict[tuple(str, str), Dict[int, int]] = defaultdict(dict)
+        self.stock_quantity: Dict[tuple(str, str), Dict[int, int]] = defaultdict(dict)
 
     def calculate_stock_quantity(
         self, input_df: pd.DataFrame,
@@ -93,10 +93,10 @@ class BaseStockPolicy(RuleBasedPolicy):
         return target_stock.value
 
     def _get_action_quantity(self, state: dict) -> int:
-        SKU_id = state["SKU"]
+        index = (state["sku_name"], state["facility_name"])
         current_tick = state["tick"]
-        self.product_level_snapshot[SKU_id][current_tick] = state["product_level"]
-        self.in_transit_snapshot[SKU_id][current_tick] = state["in_transition_quantity"]
+        self.product_level_snapshot[index][current_tick] = state["product_level"]
+        self.in_transit_snapshot[index][current_tick] = state["in_transition_quantity"]
 
         if current_tick % self.update_frequency == 0:
             self.history_start = max(current_tick - self.history_len, 0)
@@ -105,19 +105,19 @@ class BaseStockPolicy(RuleBasedPolicy):
             for i in range(min(len(state["history_purchased"]) - 1, state["cur_vlt"])):
                 purchased_before_action[-i - 1] = state["history_purchased"][-i - 1]
 
-            self.stock_quantity[SKU_id] = self.calculate_stock_quantity(
+            self.stock_quantity[index] = self.calculate_stock_quantity(
                 target_df,
-                self.product_level_snapshot[SKU_id][self.history_start],
-                self.in_transit_snapshot[SKU_id][self.history_start],
+                self.product_level_snapshot[index][self.history_start],
+                self.in_transit_snapshot[index][self.history_start],
                 state["cur_vlt"],
                 state["unit_storage_cost"],
                 purchased_before_action
             )
 
         if self.share_same_stock_level:
-            stock_quantity = max(self.stock_quantity[SKU_id])
+            stock_quantity = max(self.stock_quantity[index])
         else:
-            stock_quantity = self.stock_quantity[SKU_id][current_tick - self.history_start]
+            stock_quantity = self.stock_quantity[index][current_tick - self.history_start]
 
         booked_quantity = state["product_level"] + state["in_transition_quantity"]
         quantity = stock_quantity - booked_quantity

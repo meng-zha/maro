@@ -1,8 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
 
-import pandas as pd
 import datetime
+import pandas as pd
 
 
 class BaseDataLoader(object):
@@ -33,13 +33,15 @@ class DataLoaderFromFile(BaseDataLoader):
         self.date_len = len(pd.date_range(self.start_date, self.end_date))
 
     def load(self, state: dict) -> pd.DataFrame:
-        SKU_id = state["SKU"]
+        sku_name = state["sku_name"]
+        facility_name = state["facility_name"]
         history_offset = max(state["tick"] - self.data_loader_conf["history_len"], 0)
         history_start_date = self.start_date + datetime.timedelta(history_offset)
         future_offset = min(state["tick"] + self.data_loader_conf["future_len"], self.date_len)
         future_end_date = self.start_date + datetime.timedelta(future_offset)
         target_df = self.df_raws[
-            (self.df_raws["SKU"] == SKU_id)
+            (self.df_raws["FacilityName"] == facility_name)
+            & (self.df_raws["SkuName"] == sku_name)
             & (self.df_raws["Date"] >= history_start_date)
             & (self.df_raws["Date"] <= future_end_date)
         ]
