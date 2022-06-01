@@ -64,7 +64,8 @@ storage_enlarged = False
 #     f"_{selection.value}"
 #     f"{'_storage_enlarged' if storage_enlarged else ''}"
 # )
-TOPOLOGY = "super_vendor"
+# TOPOLOGY = "super_vendor"
+TOPOLOGY = "walmart"
 
 TRAIN_STEPS = 180
 EVAL_STEPS = 60
@@ -85,10 +86,10 @@ test_env_conf = {
 
 base_policy_conf = {
     "data_loader": "DataLoaderFromFile",
-    "oracle_file": "oracle_samples.csv",  # Only need in DataLoaderFromFile loader
-    "history_len": 28,  # E.g., mapping to np.inf in instance creation if it is static
-    "future_len": 7,
-    "update_frequency": 7,  # E.g., mapping to np.inf in instance creation if no update
+    "oracle_file": "oracle.csv",  # Only need in DataLoaderFromFile loader
+    "history_len": np.inf,  # E.g., mapping to np.inf in instance creation if it is static
+    "future_len": np.inf,
+    "update_frequency": np.inf,  # E.g., mapping to np.inf in instance creation if no update
 
     # If true, until next update, all steps will share the same stock level
     # otherwise, each steps will calculate own stock level.

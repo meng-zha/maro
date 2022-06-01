@@ -1,0 +1,152 @@
+# core: optional. additional to the ones in core.yml
+# facility_definitions: optional.
+# world: must have.
+#   world.skus: must have.
+#   world.facility: must have.
+#   world.topology: must have.
+# settings: optional.
+# policy_parameter: no need for environment, must have for RL-based policies.
+
+
+facility_definitions:
+  # Key: would be used as "definition_ref" in world.facilities
+  PlantFacility:
+    class: "SupplierFacility"
+    datamodel: "FacilityDataModel"
+    children:
+      storage:
+        class: "StorageUnit"
+      distribution:
+        class: "DistributionUnit"
+    products:
+      class: "ProductUnit"
+      config:
+        manufacture:
+          class: "ManufactureUnit"
+        consumer:
+          class: "ConsumerUnit"
+
+  StoreFacility:
+    class: "OuterRetailerFacility"
+    datamodel: "FacilityDataModel"
+    children:
+      storage:
+        class: "StorageUnit"
+    products:
+      class: "StoreProductUnit"
+      config:
+        consumer:
+          class: "ConsumerUnit"
+        seller:
+          class: "OuterSellerUnit"
+          config:
+            sale_hist_len: 14
+    config:
+      dynamics_sampler_type: processed_price_demand # What kind of sampler to use.
+      sku_column: "SkuName" # SKU column name
+      price_column: "Price" # Price column name
+      demand_column: "Demand" # Demand column name
+      datetime_column: "Date" # Date-time column name
+      file_path: "/path/to/data.csv" # full path to data file, override by each store instance
+
+
+super_distribution: &super_distribution
+  config:
+    train:
+      number: null  # null indicates infinite distribution capacity.
+
+mix_distribution: &mix_distribution
+  config:
+    train:
+      number: 140
+    air:
+      number: 4
+
+simple_distribution: &simple_distribution
+  config:
+    train:
+      number: 140
+
+super_storage: &super_storage
+  config:
+    capacity: null  # null indicates infinite storage capacity.
+    unit_storage_cost: 0
+
+multi_storage: &multi_storage
+  config:
+    -
+      id: 1
+      capacity: 80000
+      unit_storage_cost: 0.1
+    -
+      id: 2
+      capacity: 80000
+      unit_storage_cost: 0.1
+
+single_storage: &single_storage
+  config:
+    capacity: 80000
+    unit_storage_cost: 0.1
+
+
+world:
+  skus:
+    # corresponding to SkuMeta
+    - id: 183676
+      name: "供港生菜600G"
+
+  facilities:
+    - name: "Plant"
+      definition_ref: "PlantFacility"
+      skus:
+        "供港生菜600G":  # The key can be sku id or name
+          price: 9
+          init_stock: 10000
+          sub_storage_id: 0
+          has_manufacture: True
+          max_manufacture_rate: 10000
+          unit_product_cost: 4.0
+          unit_delay_order_penalty: 1000
+          unit_order_cost: 2.0
+      children:
+        storage: *single_storage
+        distribution: *simple_distribution
+      config:
+        unit_delay_order_penalty: 1000
+        unit_order_cost: 1.0
+
+    - name: "Store_4803"
+      definition_ref: "StoreFacility"
+      skus:
+        183676:
+          price: 15
+          init_stock: 100
+          sub_storage_id: 0
+          has_consumer: True
+          has_seller: True
+          sale_gamma: 60
+          unit_order_cost: 2.0
+          backlog_ratio: 0.1
+      children:
+        storage: *single_storage
+      config:
+        unit_order_cost: 1.0
+        file_path: "maro/simulator/scenarios/supply_chain/topologies/walmart/walmart_data/4803.csv"
+
+  topology:
+    "Store_4803":
+      "供港生菜600G":
+        "Plant":
+          "train":
+            vlt: 2
+            cost: 1
+settings:
+  pending_order_len: 4  # For initialization of Consumer Units
+  start_date_time: "2021-01-01"
+
+policy_parameter:
+  facilities:
+    Plant_001:
+      max_price: 100
+    Store_001:
+      max_price: 100
