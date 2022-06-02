@@ -30,7 +30,7 @@ product_features = ("price", )
 IDX_PRODUCT_PRICE = 0
 
 
-m_vlt, s_vlt, ns_vlt = 2, 2, 2
+m_vlt, s_vlt, ns_vlt = 1, 1, 1
 
 
 def get_vlt_buffer_factor(entity: SupplyChainEntity, facility_info: FacilityInfo) -> float:
@@ -67,8 +67,8 @@ storage_enlarged = False
 # TOPOLOGY = "super_vendor"
 TOPOLOGY = "walmart"
 
-TRAIN_STEPS = 180
-EVAL_STEPS = 60
+TRAIN_STEPS = 10
+EVAL_STEPS = 100
 
 PLOT_RENDER = False
 
@@ -85,8 +85,10 @@ test_env_conf = {
 }
 
 base_policy_conf = {
-    "data_loader": "DataLoaderFromFile",
-    "oracle_file": "oracle.csv",  # Only need in DataLoaderFromFile loader
+    "data_loader": "OracleDataLoader",
+    # Oracle file only need in OracleDataLoader
+    "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/walmart_data",
+    "oracle_files": ["4803.csv", "4830.csv", "6505.csv"],  
     "history_len": np.inf,  # E.g., mapping to np.inf in instance creation if it is static
     "future_len": np.inf,
     "update_frequency": np.inf,  # E.g., mapping to np.inf in instance creation if no update

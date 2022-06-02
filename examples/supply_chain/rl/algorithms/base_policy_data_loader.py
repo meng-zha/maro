@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
 
+import os
 import datetime
 import pandas as pd
 
@@ -14,19 +15,24 @@ class BaseDataLoader(object):
         pass
 
 
-class DataLoaderFromFile(BaseDataLoader):
+class OracleDataLoader(BaseDataLoader):
     def __init__(self, data_loader_conf) -> None:
         super().__init__(data_loader_conf)
 
-        oracle_file = self.data_loader_conf["oracle_file"]
-        if oracle_file.endswith(".csv"):
-            self.df_raws = pd.read_csv(oracle_file, parse_dates=["Date"])
-        elif oracle_file.endswith(".tsv"):
-            self.df_raws = pd.read_csv(oracle_file, parse_dates=["Date"], sep="\t")
-        elif oracle_file.endswith(".xlsx"):
-            self.df_raws = pd.read_excel(oracle_file, parse_dates=["Date"])
-        else:
-            raise NotImplementedError
+        oracle_file_dir = self.data_loader_conf["oracle_file_dir"]
+        oracle_files = self.data_loader_conf["oracle_files"]
+        df_list = []
+        for oracle_name in oracle_files:
+            oracle_file_path = os.path.join(oracle_file_dir, oracle_name)
+            if oracle_file_path.endswith(".csv"):
+                df_list.append(pd.read_csv(oracle_file_path, parse_dates=["Date"]))
+            elif oracle_file_path.endswith(".tsv"):
+                df_list.append(pd.read_csv(oracle_file_path, parse_dates=["Date"], sep="\t"))
+            elif oracle_file_path.endswith(".xlsx"):
+                df_list.append(pd.read_excel(oracle_file_path, parse_dates=["Date"]))
+            else:
+                raise NotImplementedError
+        self.df_raws = pd.concat(df_list, axis=0)
         self.df_raws.sort_values(by="Date", ascending=True)
         self.start_date = min(self.df_raws["Date"])
         self.end_date = max(self.df_raws["Date"])
@@ -48,7 +54,7 @@ class DataLoaderFromFile(BaseDataLoader):
         return target_df.sort_values(by=["Date"])
 
 
-class DataLoaderFromHistory(BaseDataLoader):
+class MovingAverageDataLoader(BaseDataLoader):
     def load(self, state: dict) -> pd.DataFrame:
         target_df = pd.DataFrame(columns=["Price", "Cost", "Demand"])
 
