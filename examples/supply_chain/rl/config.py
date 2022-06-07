@@ -67,8 +67,8 @@ storage_enlarged = False
 # TOPOLOGY = "super_vendor"
 TOPOLOGY = "walmart"
 
-TRAIN_STEPS = 10
-EVAL_STEPS = 100
+TRAIN_STEPS = 1
+EVAL_STEPS = 91
 
 PLOT_RENDER = False
 
@@ -86,16 +86,28 @@ test_env_conf = {
 
 base_policy_conf = {
     "data_loader": "OracleDataLoader",
+    # "data_loader": "OracleDataLoader",
     # Oracle file only need in OracleDataLoader
-    "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/walmart_data",
-    "oracle_files": ["4803.csv", "4830.csv", "6505.csv"],  
-    "history_len": np.inf,  # E.g., mapping to np.inf in instance creation if it is static
-    "future_len": np.inf,
-    "update_frequency": np.inf,  # E.g., mapping to np.inf in instance creation if no update
+
+    "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/pure_data/2_layers",
+    # "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/output/walmart_fixed_56_7_Predicted/2_layers",
+
+    # "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/output_reserved_noise/walmart_fixed_7_7_reserved_noise_Predicted/2_layers",
+    # "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/output/walmart_fixed_28_7_Predicted/2_layers",
+    
+    "oracle_files": [
+        "Store_4803.csv", # "Store_6649.csv", "Store_6685.csv", "Store_6688.csv", "Store_6743.csv", "Store_6773.csv",
+        "Store_4830.csv", # "Store_6107.csv", "Store_6686.csv", "Store_6687.csv", "Store_6752.csv", "Store_6765.csv",
+        "Store_6505.csv", # "Store_6640.csv", "Store_6648.csv", "Store_6672.csv", "Store_6673.csv", "Store_6684.csv", "Store_6753.csv", "Store_6822.csv"
+        ],  
+    "history_len": 7,  # E.g., mapping to np.inf in instance creation if it is static
+    "future_len": 7,
+    "update_frequency": 7,  # E.g., mapping to np.inf in instance creation if no update
 
     # If true, until next update, all steps will share the same stock level
     # otherwise, each steps will calculate own stock level.
-    "share_same_stock_level": False
+    "share_same_stock_level": True,
+    "start_date_time": "2021-07-01"
 }
 
 workflow_settings: dict = {
