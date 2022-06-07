@@ -10,7 +10,7 @@ import pandas as pd
 
 from maro.rl.policy import RuleBasedPolicy
 
-from .base_policy_data_loader import OracleDataLoader, MovingAverageDataLoader
+from .base_policy_data_loader import OracleDataLoader, MovingAverageDataLoader, ForecastingDataLoader
 
 
 class BaseStockPolicy(RuleBasedPolicy):
@@ -18,7 +18,7 @@ class BaseStockPolicy(RuleBasedPolicy):
         super().__init__(name)
 
         data_loader_class = eval(policy_parameters["data_loader"])
-        assert issubclass(data_loader_class, (OracleDataLoader, MovingAverageDataLoader))
+        assert issubclass(data_loader_class, (OracleDataLoader, MovingAverageDataLoader, ForecastingDataLoader))
         self.data_loader = data_loader_class(policy_parameters)
 
         self.share_same_stock_level = policy_parameters.get("share_same_stock_level", True)
@@ -121,7 +121,7 @@ class BaseStockPolicy(RuleBasedPolicy):
 
         booked_quantity = state["product_level"] + state["in_transition_quantity"]
         quantity = stock_quantity - booked_quantity
-        # quantity = max(0.0, (1.0 if state['demand_mean'] <= 0.0 else round(quantity / state['demand_mean'], 0)))
+        quantity = max(0.0, (1.0 if state['demand_mean'] <= 0.0 else round(quantity / state['demand_mean'], 0)))
         return max(int(quantity), 0.0)
 
     def _rule(self, states: List[dict]) -> List[int]:

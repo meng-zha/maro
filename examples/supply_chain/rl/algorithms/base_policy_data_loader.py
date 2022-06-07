@@ -78,3 +78,54 @@ class MovingAverageDataLoader(BaseDataLoader):
                 "Demand": his_demand_price
             }), ignore_index=True)
         return target_df
+
+
+class ForecastingDataLoader(BaseDataLoader):
+    def __init__(self, data_loader_conf) -> None:
+        super().__init__(data_loader_conf)
+        forecasting_file_dir = self.data_loader_conf["forecasting_file_dir"]
+        forecasting_files = self.data_loader_conf["forecasting_files"]
+        df_list = []
+        for forecasting_name in forecasting_files:
+            forecasting_file_path = os.path.join(forecasting_file_dir, forecasting_name)
+            if forecasting_file_path.endswith(".csv"):
+                df_list.append(pd.read_csv(forecasting_file_path, parse_dates=["Date"]))
+            elif forecasting_file_path.endswith(".tsv"):
+                df_list.append(pd.read_csv(forecasting_file_path, parse_dates=["Date"], sep="\t"))
+            elif forecasting_file_path.endswith(".xlsx"):
+                df_list.append(pd.read_excel(forecasting_file_path, parse_dates=["Date"]))
+            else:
+                raise NotImplementedError
+        self.df_raws = pd.concat(df_list, axis=0)
+        self.df_raws.sort_values(by="Date", ascending=True)
+        self.start_date = min(self.df_raws["Date"])
+        self.end_date = max(self.df_raws["Date"])
+        self.date_len = len(pd.date_range(self.start_date, self.end_date))
+    
+    def load(self, state: dict) -> pd.DataFrame:
+        # Including history and today from env
+        history_start = max(state["tick"] - self.data_loader_conf["history_len"], 0)
+        target_df_his = pd.DataFrame(columns=["Price", "Cost", "Demand"])
+        for index in range(history_start, state["tick"] + 1):
+            target_df_his = target_df_his.append(pd.Series({
+                "Price": state["history_price"][index],
+                "Cost": state["unit_order_cost"],
+                "Demand": state["history_demand"][index]
+            }), ignore_index=True)
+        
+        # Load predict from forecasting result file.
+        current_date = self.start_date + datetime.timedelta(state["tick"])
+        future_offset = min(state["tick"] + self.data_loader_conf["future_len"], self.date_len)
+        future_end_date = self.start_date + datetime.timedelta(future_offset)
+
+        sku_name = state["sku_name"]
+        facility_name = state["facility_name"]
+        target_df_fut = self.df_raws[
+            (self.df_raws["FacilityName"] == facility_name)
+            & (self.df_raws["SkuName"] == sku_name)
+            & (self.df_raws["Date"] > current_date)
+            & (self.df_raws["Date"] <= future_end_date)
+        ]
+        target_df_fut = target_df_fut[["Price", "Cost", "Demand"]]
+        target_df = pd.concat([target_df_his, target_df_fut], axis=-0)
+        return target_df

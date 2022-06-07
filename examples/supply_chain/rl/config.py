@@ -86,16 +86,15 @@ test_env_conf = {
 
 base_policy_conf = {
     "data_loader": "OracleDataLoader",
+    # "data_loader": "ForecastingDataLoader",
     # "data_loader": "OracleDataLoader",
     # Oracle file only need in OracleDataLoader
 
     "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/pure_data/2_layers",
-    # "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/output/walmart_fixed_56_7_Predicted/2_layers",
-
-    # "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/output_reserved_noise/walmart_fixed_7_7_reserved_noise_Predicted/2_layers",
-    # "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/output/walmart_fixed_28_7_Predicted/2_layers",
+    "forecasting_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/output/walmart_fixed_7_7_Predicted/2_layers",
     
     "oracle_files": [
+    #"forecasting_files": [
         "Store_4803.csv", # "Store_6649.csv", "Store_6685.csv", "Store_6688.csv", "Store_6743.csv", "Store_6773.csv",
         "Store_4830.csv", # "Store_6107.csv", "Store_6686.csv", "Store_6687.csv", "Store_6752.csv", "Store_6765.csv",
         "Store_6505.csv", # "Store_6640.csv", "Store_6648.csv", "Store_6672.csv", "Store_6673.csv", "Store_6684.csv", "Store_6753.csv", "Store_6822.csv"
