@@ -121,7 +121,7 @@ class BaseStockPolicy(RuleBasedPolicy):
 
         booked_quantity = state["product_level"] + state["in_transition_quantity"]
         quantity = stock_quantity - booked_quantity
-        quantity = max(0.0, (1.0 if state['demand_mean'] <= 0.0 else round(quantity / state['demand_mean'], 0)))
+        # quantity = max(0.0, (1.0 if state['demand_mean'] <= 0.0 else round(quantity / state['demand_mean'], 0)))
         return max(int(quantity), 0.0)
 
     def _rule(self, states: List[dict]) -> List[int]:
