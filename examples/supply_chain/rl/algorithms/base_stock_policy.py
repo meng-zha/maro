@@ -11,6 +11,7 @@ import pandas as pd
 from maro.rl.policy import RuleBasedPolicy
 
 from .base_policy_data_loader import OracleDataLoader, MovingAverageDataLoader, ForecastingDataLoader
+from .forecasting_data_loader import MAROForecastingDataLoader
 
 
 class BaseStockPolicy(RuleBasedPolicy):
@@ -18,7 +19,7 @@ class BaseStockPolicy(RuleBasedPolicy):
         super().__init__(name)
 
         data_loader_class = eval(policy_parameters["data_loader"])
-        assert issubclass(data_loader_class, (OracleDataLoader, MovingAverageDataLoader, ForecastingDataLoader))
+        assert issubclass(data_loader_class, (OracleDataLoader, MovingAverageDataLoader, MAROForecastingDataLoader))
         self.data_loader = data_loader_class(policy_parameters)
 
         self.share_same_stock_level = policy_parameters.get("share_same_stock_level", True)

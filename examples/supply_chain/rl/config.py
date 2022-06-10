@@ -85,13 +85,16 @@ test_env_conf = {
 }
 
 base_policy_conf = {
-    "data_loader": "OracleDataLoader",
-    # "data_loader": "ForecastingDataLoader",
+    # "data_loader": "OracleDataLoader",
+    "data_loader": "MAROForecastingDataLoader",
     # "data_loader": "OracleDataLoader",
     # Oracle file only need in OracleDataLoader
 
     "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/pure_data/2_layers",
-    "forecasting_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/output/walmart_fixed_7_7_Predicted/2_layers",
+    "forecasting_conf": "/home/v-mengzhang/MAROForecast/config_files/walmart.yml",
+    "date_feature_path": "/home/v-mengzhang/Walmart/evaluation/data/date_feature.csv",
+    "items_info_path": "/home/v-mengzhang/Walmart/evaluation/data/POC LT-0125.csv",
+    "start_date": "2021-07-01",
     
     "oracle_files": [
     #"forecasting_files": [

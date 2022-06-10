@@ -15,4 +15,4 @@ def get_args() -> argparse.Namespace:
 if __name__ == "__main__":
     # args = get_args()
     # run(conf_path=args.conf_path, containerize=False, evaluate_only=args.evaluate_only)
-    run(conf_path=r"examples\\rl\\supply_chain.yml", containerize=False, evaluate_only=True)
+    run(conf_path=r"examples/rl/supply_chain.yml", containerize=False, evaluate_only=True)
