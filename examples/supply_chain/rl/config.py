@@ -91,9 +91,9 @@ base_policy_conf = {
     # Oracle file only need in OracleDataLoader
 
     "oracle_file_dir": "maro/simulator/scenarios/supply_chain/topologies/walmart/pure_data/2_layers",
-    "forecasting_conf": "/home/v-mengzhang/MAROForecast/config_files/walmart.yml",
-    "date_feature_path": "/home/v-mengzhang/Walmart/evaluation/data/date_feature.csv",
-    "items_info_path": "/home/v-mengzhang/Walmart/evaluation/data/POC LT-0125.csv",
+    "forecasting_conf": "maro/forecasting/MAROForecast/config_files/walmart_maro.yml",
+    "date_feature_path": "maro/forecasting/MAROForecast/data/walmart/date_feature.csv",
+    "items_info_path": "maro/forecasting/MAROForecast/data/walmart/POC LT-0125.csv",
     "start_date": "2021-07-01",
     
     "oracle_files": [

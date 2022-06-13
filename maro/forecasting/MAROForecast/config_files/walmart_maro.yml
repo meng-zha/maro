@@ -1,0 +1,214 @@
+experiment:
+  seed: 2022
+  experiment_name: walmart_fixed_8_7_for_maro
+  output_dir: output
+  backup_code: true
+  device: cuda
+  train: true
+  test: true
+  rolling: 2
+
+data:
+  name: WalmartDataset
+  root_path: maro/forecasting/MAROForecast/data/walmart
+  shared_columns:
+    date: date
+    nodes: [store_nbr, item_nbr]
+    target: total_qty
+    noise: is_noise
+  dataset: 
+    - name: rectified_sku60
+      type: sequence
+      parse_date: True
+      sort_by: [store_nbr, item_nbr, date]
+      backup_columns: [store_nbr, item_nbr, total_qty]
+      fill_missing_row:
+        function: combination
+        columns: [store_nbr, item_nbr, date]
+      filter_noise: 
+        function: filter_when_no_target
+        action: set_node_to_na
+      subset:
+        split_type: split_by_field
+        split_field: date
+        shared_files: [rectified_sku60_shifted_v0220.csv]
+        mode:
+          train:
+            start: 2020-10-01
+            end: 2021-07-01
+          val:
+            start: 2021-03-01
+            end: 2021-07-01
+          test:
+            start: 2021-07-01
+            end: 2021-10-31
+      encoding:
+        - column: store_nbr
+          function: indexing_from_1
+        - column: item_nbr
+          function: indexing_from_1
+        - column: festival_name
+          function: indexing_from_1
+
+    - name: partially_dynamic_graph_last_28day
+      type: partially_dynamic_graph
+      parse_date: True
+      files: [partially_dynamic_graph_last_28day_u_item_col_after20200701.csv]
+      sort_by: [date, item_nbr_1, item_nbr_2]
+      subset:
+        split_type: no_split
+        shared_files: [partially_dynamic_graph_last_28day_u_item_col_after20200701.csv]
+      encode_from_encoded: 
+        - name: item_nbr
+          columns: [item_nbr_1, item_nbr_2]
+          filter_no_encoded: true
+
+    - name: global_graph
+      type: static_graph
+      sort_by: [item_nbr_1, item_nbr_2]
+      subset:
+        split_type: split_by_file
+        mode:
+          train: [global_graph_from2019-07-01to2020-07-01_all.csv] 
+          val: [global_graph_from2020-07-01to2021-07-01_all.csv] 
+          test: [global_graph_from2020-07-01to2021-07-01_all.csv]
+      encode_from_encoded: 
+        - name: item_nbr
+          columns: [item_nbr_1, item_nbr_2]
+          filter_no_encoded: true
+
+  sequence_feature:
+    features: 
+      - column: store_nbr
+        attr: categorical 
+        NN_embedding: 
+          num: 21
+          dim: 8
+      - column: item_nbr
+        attr: categorical
+        NN_embedding: 
+          num: 61
+          dim: 10
+      - column: total_qty
+        attr: numerical
+        group_normalize_by_history: True
+      - column: avg_price
+        attr: numerical
+        group_normalize_by_history: True
+      - column: workday
+        attr: bool
+      - column: day_before_holiday
+        attr: bool
+      - column: day_after_holiday
+        attr: bool
+      - column: weekend
+        attr: bool
+      - column: festival_name
+        attr: categorical
+        NN_embedding: 
+          num: 9
+          dim: 3
+      - column: store_nbr_ori
+        attr: categorical 
+      - column: item_nbr_ori
+        attr: categorical
+    history:
+      dates: 8
+      features: [store_nbr, item_nbr, total_qty, avg_price]
+    future: 
+      dates: 7
+      features: [store_nbr, item_nbr, workday, day_before_holiday, day_after_holiday, weekend, festival_name]
+    label: 
+      features: [total_qty]
+    node:
+      features: [store_nbr_ori, item_nbr_ori, is_noise]
+
+  graph_feature:
+    adj: count
+    nodes: [item_nbr]
+    
+model:
+  backbone: 
+    name: MqGNN
+    global_local_feature_size: 64
+    mlp_decoder_hidden: [128, 128]
+    out_size: 1
+  temporal:
+    name: SequenceGraphNN
+    network: SequenceGraphNN 
+    block: GraphConvolution
+    self_hidden: 512
+    num_layers: 1
+    num_graphs: 1
+    enhance: false
+    dropout: 0
+    normalize_edge_weight: true
+    use_residual: false
+  GNN:
+    - name: StaticGraphNN
+      network: GraphNN
+      block: GraphConvolution
+      self_hidden: 512
+      num_layers: 1
+      num_graphs: 1
+      enhance: false
+      graph_name: global_graph
+      dropout: 0
+      normalize_edge_weight: true
+      use_residual: false
+    - name: PartiallyDynamicGraphNN
+      network: GraphNN
+      block: GraphConvolution
+      self_hidden: 512
+      num_layers: 1
+      num_graphs: 1
+      enhance: false
+      graph_name: partially_dynamic_graph_last_28day
+      dropout: 0
+      normalize_edge_weight: true
+      use_residual: false
+train:
+  optimizer: Adam
+  LR: 0.001
+  loss: l1_loss
+  shuffle: true
+  batch_size: 16
+  start_epoch: 0
+  end_epoch: 50
+  model_save: every_epoch
+test:
+  name: WalmartEvaluator
+  predict:
+    columns:
+      - column: store_nbr
+        source: [tensor, node, 0]
+      - column: item_nbr
+        source: [tensor, node, 1]
+      - column: date
+        source: [meta_info, date]
+        to_datetime: true
+      - column: predict
+        source: [output, 0]
+        denormalization: True
+        relu: True
+      - column: save
+        source: [total, 0]
+        denormalization: True
+        relu: True
+    # filter_noise: [node, 2]
+  ground_truth:
+    files: [rectified_sku60_shifted_v0220.csv]
+    abandon_dates: 320
+    history_mean_dates: 120
+  eval:
+    main_store:
+      - main: 4803
+        sub: [4803, 6649, 6685, 6688, 6743, 6773]
+      - main: 4830
+        sub: [4830, 6107, 6686, 6687, 6752, 6765]
+      - main: 6505
+        sub: [6505, 6640, 6648, 6672, 6673, 6684, 6753, 6822]
+    abandon_store: [6640, 6773, 6107, 6822, 6765]
+    predict_result: "Predicted.csv"
+    accuracy_result: "Accuracy.csv"
+  model_path: maro/forecasting/MAROForecast/ckpts/model_best.pth

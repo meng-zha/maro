@@ -1,0 +1,137 @@
+experiment:
+  seed: 2022
+  experiment_name: sci_data
+  output_dir: output
+  backup_code: true
+  device: cuda
+  train: true
+  test: true 
+
+data:
+  name: WalmartDataset
+  root_path: data/sci_data
+  shared_columns:
+    date: Date
+    nodes: [StoreId, ItemId]
+    target: Sales
+    noise: is_noise
+  dataset: 
+    - name: sales_0-filled
+      type: sequence
+      parse_date: True
+      sort_by: [StoreId, ItemId, Date]
+      backup_columns: [StoreId, ItemId, Sales]
+      fill_missing_row:
+        function: combination
+        columns: [StoreId, ItemId, Date]
+      filter_noise: 
+        function: filter_when_no_target
+        action: set_node_to_na
+      subset:
+        split_type: split_by_field
+        split_field: Date
+        shared_files: [sales_0-filled.csv]
+        mode:
+          train:
+            start: 2011-01-29
+            end: 2016-01-01
+          val:
+            start: 2016-01-02
+            end: 2016-03-01
+          test:
+            start: 2016-03-02
+            end: 2016-05-22
+      encoding:
+        - name: store_indexing
+          column: StoreId
+          function: indexing_from_1
+        - name: item_indexing
+          column: ItemId
+          function: indexing_from_1
+
+  sequence_feature:
+    features: 
+      - column: Sales
+        attr: numerical
+        group_normalize_by_history: True
+      - column: Price
+        attr: numerical
+        group_normalize_by_history: True
+      - column: StoreId
+        attr: categorical 
+        NN_embedding: 
+          num: 11
+          dim: 5
+      - column: ItemId
+        attr: categorical
+        NN_embedding: 
+          num: 501
+          dim: 64
+    history:
+      dates: 28
+      features: [Sales, Price, StoreId, ItemId]
+    future: 
+      dates: 28
+      features: [StoreId, ItemId]
+    label: 
+      features: [Sales]
+    node:
+      features: [StoreId, ItemId, is_noise]
+
+  graph_feature:
+    adj: count
+    nodes: [item_nbr]
+    
+model:
+  backbone: 
+    name: MqGNN
+    global_local_feature_size: 64
+    mlp_decoder_hidden: [128, 128]
+    out_size: 1
+  temporal:
+    name: SequenceGraphNN
+    network: GraphNN
+    block: GraphConvolution
+    self_hidden: 512
+    num_layers: 1
+    num_graphs: 1
+    enhance: false
+    dropout: 0
+    normalize_edge_weight: true
+    use_residual: false
+  GNN: []
+train:
+  optimizer: Adam
+  LR: 0.001
+  loss: l1_loss
+  shuffle: true
+  batch_size: 16
+  start_epoch: 0
+  end_epoch: 200
+  model_save: every_epoch
+test:
+  name: DefaultEvaluator
+  predict:
+    columns:
+      - column: StoreId
+        source: [tensor, node, 0]
+        decoding: store_indexing
+      - column: ItemId
+        source: [tensor, node, 1]
+        decoding: item_indexing
+      - column: Date
+        source: [meta_info, date]
+        to_datetime: true
+      - column: predict
+        source: [output, 0]
+        denormalization: True
+        relu: True
+    filter_noise: [node, 2]
+  ground_truth:
+    files: [sales_0-filled.csv]
+    predict_result: "Predicted.csv"
+    accuracy_result: "Accuracy.csv"
+  eval:
+    metric: smape
+    predict: ['predict']
+    label: ['Sales']

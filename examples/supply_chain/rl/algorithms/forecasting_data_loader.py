@@ -1,10 +1,7 @@
 import datetime
 import pandas as pd
 
-import sys
-sys.path.insert(0,"/home/v-mengzhang/MAROForecast")
-
-from maro_forecasting import MAROForecasting
+from maro.forecasting.MAROForecast.maro_forecasting import MAROForecasting
 from .base_policy_data_loader import BaseDataLoader
 
 class MAROForecastingDataLoader(BaseDataLoader):
